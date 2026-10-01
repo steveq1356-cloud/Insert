@@ -16,7 +16,12 @@ no server.
 
 Click **Try the example block** to see it work without your own part.
 
+If Three.js can't load (offline, or a network that blocks CDNs), the app
+switches to a 2D top view. Picking, placing, and G-code all still work.
+
 ## Workflow
+
+The sidebar walks through four steps: **Part**, **Holes**, **Machine**, **Export**.
 
 1. **Open STL** (or drag one onto the view). Use **Turn 90°** until the side
    with the insert holes faces up. Set **File units** to inches if your CAD
@@ -29,7 +34,7 @@ Click **Try the example block** to see it work without your own part.
 4. Drag the number tags to reorder, or press **Shortest path**.
 5. Pick the insert size per hole. Sizes are guessed from the hole diameter.
    Click a row to set a per-hole finish depth.
-6. Check the **G-code** tab for warnings, then **Download G-code**.
+6. Tune feeds and heights on **Machine**, then check **Export** for warnings and **Download G-code**.
 7. **Save job** writes a small `.ipjob.json` with your picks and settings.
    **Open job**, then open the same STL, to pick up where you left off.
 
@@ -110,6 +115,7 @@ js/stl.js           STL parsing, rotation, placement in the fence corner
 js/holes.js         hole detection
 js/gcode.js         insert sizes, defaults, checks, G-code, path ordering
 js/viewer.js        Three.js view and picking
+js/viewer2d.js      2D top-view fallback with the same interface
 js/app.js           UI state and wiring
 js/example.js       built-in example block
 examples/           example-block.stl

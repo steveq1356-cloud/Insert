@@ -4,8 +4,8 @@
   const IP = (root.IP = root.IP || {});
 
   const COLORS = {
-    bed: 0x34434a, grid: 0x46565d, grid10: 0x55666e, fence: 0x8f9a9e,
-    part: 0xc9ced0, edges: 0x5d676c,
+    bed: 0x2b363c, grid: 0x36434a, grid10: 0x4a5961, fence: 0x7d888d,
+    part: 0xd4d8da, edges: 0x6b757a,
     candidate: 0xf3f1ea, selected: 0xc99a3b, active: 0xffd27a, path: 0xe0602f,
   };
 
@@ -53,6 +53,7 @@
         if (moved < 5 && e.button === 0) this._pick(e);
       });
       c.addEventListener('pointermove', (e) => this._hover(e));
+      c.addEventListener('pointerleave', () => { this._hoverId = null; if (this.h.onHover) this.h.onHover(null); });
 
       this._ro = new ResizeObserver(() => this.resize());
       this._ro.observe(el);
@@ -224,7 +225,8 @@
       const m = this.raycaster.intersectObjects(this.markerMeshes, false)[0];
       const id = m ? m.object.userData.id : null;
       this.renderer.domElement.style.cursor = id != null ? 'pointer' : this.h.addMode && this.h.addMode() ? 'crosshair' : '';
-      if (id !== this._hoverId) { this._hoverId = id; if (this.h.onHover) this.h.onHover(id); }
+      this._hoverId = id;
+      if (this.h.onHover) this.h.onHover(id, e.clientX, e.clientY);
     }
   }
 

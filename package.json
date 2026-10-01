@@ -1,6 +1,6 @@
 {
   "name": "insertpress-planner",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pick heat-set insert holes on an STL and generate GRBL G-code for an automated insert press.",
   "private": true,
   "scripts": {
