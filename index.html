@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InsertPress Planner</title>
+  <meta name="description" content="Pick heat-set insert holes on an STL and generate GRBL G-code for an automated insert press.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='9' y='4' width='14' height='24' rx='2' fill='%23B8862C'/%3E%3Crect x='13' y='4' width='6' height='24' fill='%238a6420'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 32" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="28" rx="3" fill="var(--brass)"/>
+        <path d="M2 9h20M2 16h20M2 23h20" stroke="var(--brass-deep)" stroke-width="2"/>
+        <rect x="8" y="2" width="8" height="28" fill="var(--brass-deep)" opacity=".55"/>
+      </svg>
+      <span class="brand-name">InsertPress <span>Planner</span></span>
+    </div>
+    <nav class="bar-actions">
+      <label class="btn" for="file-stl">Open STL</label>
+      <input type="file" id="file-stl" accept=".stl,model/stl" hidden>
+      <label class="btn ghost" for="file-job">Open job</label>
+      <input type="file" id="file-job" accept=".json,.ipjob,application/json" hidden>
+      <button class="btn ghost" id="btn-save-job" disabled>Save job</button>
+      <button class="btn primary" id="btn-export" disabled>Download G-code</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <aside class="panel left" aria-label="Part and holes">
+      <section class="block">
+        <h2>Part</h2>
+        <div id="part-info" class="part-info muted">No part loaded.</div>
+        <div class="field-row" id="orient-row">
+          <span class="field-label">Turn 90°</span>
+          <div class="seg">
+            <button class="btn small" data-rot="x" disabled>X</button>
+            <button class="btn small" data-rot="y" disabled>Y</button>
+            <button class="btn small" data-rot="z" disabled>Z</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="units">File units</label>
+          <select id="units">
+            <option value="1">Millimetres</option>
+            <option value="25.4">Inches</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="block grow">
+        <div class="block-head">
+          <h2>Holes</h2>
+          <span class="count" id="hole-count"></span>
+        </div>
+        <div class="toolrow">
+          <button class="btn small" id="btn-all" disabled>Use all found</button>
+          <button class="btn small" id="btn-none" disabled>Clear</button>
+          <button class="btn small" id="btn-optimize" disabled title="Shortest travel from the park position">Shortest path</button>
+          <button class="btn small toggle" id="btn-add" aria-pressed="false" disabled>Place by hand</button>
+        </div>
+        <ol class="hole-list" id="order-list" aria-label="Press order"></ol>
+        <p class="list-empty muted" id="order-empty" hidden>Click a hole in the view, or a row below, to add it to the press order.</p>
+        <h3 class="sub" id="unused-head" hidden>Found, not pressed</h3>
+        <ul class="hole-list unused" id="unused-list"></ul>
+        <p class="muted small" id="ignored-note"></p>
+      </section>
+    </aside>
+
+    <section class="stage" id="stage" aria-label="3D view">
+      <div id="viewport"></div>
+      <div class="view-tools">
+        <div class="seg">
+          <button class="btn small dark" data-view="iso">3D</button>
+          <button class="btn small dark" data-view="top">Top</button>
+          <button class="btn small dark" data-view="front">Front</button>
+        </div>
+        <button class="btn small dark toggle" id="btn-path" aria-pressed="true">Toolpath</button>
+      </div>
+      <div class="legend" id="legend" hidden>
+        <span><i class="sw found"></i>Found</span>
+        <span><i class="sw used"></i>In press order</span>
+        <span><i class="sw path"></i>Tip travel</span>
+      </div>
+      <div class="empty" id="empty">
+        <p class="empty-title">Drop an STL here</p>
+        <p class="empty-body">The part sits in the fence corner at X0 Y0. Holes that fit an insert are found for you; pick the ones to press.</p>
+        <div class="empty-actions">
+          <label class="btn primary" for="file-stl">Open STL</label>
+          <button class="btn dark" id="btn-example">Try the example block</button>
+        </div>
+      </div>
+      <div class="add-hint" id="add-hint" hidden>Click a flat, upward-facing surface to place a hole. Press Esc when done.</div>
+      <div class="drop-veil" id="drop-veil" hidden><p>Release to open</p></div>
+      <div class="status" id="status"></div>
+    </section>
+
+    <aside class="panel right" aria-label="Machine settings and G-code">
+      <div class="tabs" role="tablist">
+        <button role="tab" class="tab" id="tab-btn-settings" aria-selected="true" aria-controls="tab-settings">Machine</button>
+        <button role="tab" class="tab" id="tab-btn-gcode" aria-selected="false" aria-controls="tab-gcode">G-code <span class="badge" id="issue-badge" hidden></span></button>
+      </div>
+      <div class="tabpanel" id="tab-settings" role="tabpanel"></div>
+      <div class="tabpanel" id="tab-gcode" role="tabpanel" hidden>
+        <dl class="summary" id="summary"></dl>
+        <ul class="issues" id="issues"></ul>
+        <div class="code-head">
+          <span class="muted small" id="code-lines"></span>
+          <button class="btn small" id="btn-copy" disabled>Copy</button>
+        </div>
+        <pre class="code" id="code"><span class="muted">G-code appears here once at least one hole is in the press order.</span></pre>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="js/stl.js"></script>
+  <script src="js/holes.js"></script>
+  <script src="js/gcode.js"></script>
+  <script src="js/example.js"></script>
+  <script src="js/viewer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
